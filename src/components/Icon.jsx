@@ -1,3 +1,4 @@
+import React from 'react';
 const { useEffect, useRef } = React;
 
 export default function Icon({name, className = '', size=24}){

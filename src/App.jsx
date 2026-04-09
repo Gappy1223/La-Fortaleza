@@ -208,7 +208,7 @@ function App() {
             <div className="min-h-screen bg-gray-100 flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-                    <div className="text-gray-600">Cargando datos...</div>
+                    <div className="text-gray-500 font-medium">Cargando datos...</div>
                 </div>
             </div>
         );
@@ -216,7 +216,7 @@ function App() {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="bg-red-50 border border-red-200 rounded-lg p-8 max-w-lg">
                     <div className="text-red-700 font-bold text-xl mb-2">Error de Conexión</div>
                     <div className="text-red-600 mb-4">{error}</div>
@@ -234,108 +234,133 @@ function App() {
         );
     }
 
+    const menuItems = [
+        { id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard'},
+        { id: 'inventario', label: 'Inventario', icon: 'Package'},
+        { id: 'alertas', label: 'Alertas', icon: 'Bell'},
+        { id: 'movimientos', label: 'Movimientos', icon: 'ArrowLeftRight'},
+        { id: 'reportes', label: 'Reportes', icon: 'BarChart3'}
+    ]
+
+    const currentMenuLabel = menuItems.find(m=>m.id === currentView)?.label;
+
     return (
-        <div className="min-h-screen bg-gray-100">
-            {/* Header */}
-            <header className="bg-emerald-600 text-white shadow-lg">
-                <div className="container mx-auto px-4 py-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-3xl font-bold">Tienda La Fortaleza</h1>
-                            <p className="text-emerald-100 text-sm">Sistema de Gestión de Inventario</p>
-                        </div>
+        <div className="flex h-screen bg-gray-50 font-sans overflow-hidden">
+            {/* Barra lateral */}
+            <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl z-20">
+                {/* Logo y título */}
+                <div className="h-16 flex items-center px-6 bg-slate-950 border-b border-slate-800">
+                    <Icon name="Shield" size={24} className="text-emerald-500 mr-3" />
+                    <h1 className="text-xl font-bold text-white tracking-wide">La Fortaleza</h1>
+                </div>
+
+                {/* Menú de navegación */}
+                <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
+                    <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 px-2">Menú Principal</div>
+                    {menuItems.map(nav=>(
                         <button
-                            onClick={loadData}
-                            className="bg-emerald-700 hover:bg-emerald-800 px-4 py-2 rounded-md text-sm flex items-center gap-2"
+                            key={nav.id}
+                            onClick={()=>setCurrentView(nav.id)}
+                            className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 ${
+                                currentView == nav.id
+                                    ? 'bg-emerald-600/10 text-emerald-400 font-medium'
+                                    : 'hover:bg-slate-800 hover:text-white'
+                            }`}
+                        >
+                            <Icon name={nav.icon} size={20} className={currentView === nav.id ? 'text-emerald-400' : 'text-slate-400'} />
+
+                        </button>
+                    ))}
+                </nav>
+            
+                {/* Bottom User Area */}
+                <div className="p-4 border-t border-slate-800">
+                    <div className="flex items-center gap-3 px-2">
+                        <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold">
+                            A
+                        </div>
+                        <div className="flex-1 text-sm text-left">
+                            <p className="text-white font-medium">Administrador</p>
+                            <p className="text-slate-500 text-xs">correo</p>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            {/* Area Principal */}
+            <div className="flex-1 flex flex-col h-screen overflow-hidden">
+                {/* Header */}
+                <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 z-10 shadow-sm">
+                    <h2 className="text-2xl font-semibold text-gray-800">
+                        {currentMenuLabel}
+                    </h2>
+                    <button
+                        onClick={loadData}
+                        className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 hover:bg-emerald-50 hover:text-emerald-600 rounded-md transition-colors text-sm font-medium"
                         >
                             <Icon name="RefreshCw" size={16} />
-                            Actualizar
+                            Actualizar Datos
                         </button>
-                    </div>
-                </div>
-            </header>
+                </header>
 
-            {/* Navegación */}
-            <nav className="bg-white shadow-md">
-                <div className="container mx-auto px-4">
-                    <div className="flex gap-1">
-                        {[
-                            { id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
-                            { id: 'inventario', label: 'Inventario', icon: 'Package' },
-                            { id: 'alertas', label: 'Alertas', icon: 'Bell' },
-                            { id: 'movimientos', label: 'Movimientos', icon: 'ArrowLeftRight' },
-                            { id: 'reportes', label: 'Reportes', icon: 'BarChart3' }
-                        ].map(nav => (
-                            <button
-                                key={nav.id}
-                                onClick={() => setCurrentView(nav.id)}
-                                className={`px-6 py-4 font-medium transition-colors flex items-center gap-2 ${
-                                    currentView === nav.id
-                                        ? 'text-emerald-600 border-b-2 border-emerald-600'
-                                        : 'text-gray-600 hover:text-emerald-600'
-                                }`}
-                            >
-                                <Icon name={nav.icon} size={18} />
-                                {nav.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </nav>
+                    {/* Contenido Principal */}
+                    <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-8">
+                        <div className="max-w-7xl mx-auto">
+                            {currentView === 'dashboard' && (
+                                <DashboardView
+                                    estadisticas={estadisticas}
+                                    productos={productos}
+                                    productosConAlertas={productosConAlertas}
+                                    formatCurrency={formatCurrency}
+                                    formatDate={formatDate}
+                                    setCurrentView={setCurrentView}
+                                    registrarMovimiento={registrarMovimiento}
+                                />
+                            )}
 
-            {/* Contenido Principal */}
-            <main className="container mx-auto px-4 py-8">
-                {currentView === 'dashboard' && (
-                    <DashboardView
-                        estadisticas={estadisticas}
-                        productos={productos}
-                        productosConAlertas={productosConAlertas}
-                        formatCurrency={formatCurrency}
-                        formatDate={formatDate}
-                        setCurrentView={setCurrentView}
-                        registrarMovimiento={registrarMovimiento}
-                    />
-                )}
+                            {currentView === 'inventario' && (
+                                <InventarioView
+                                    productosFiltrados={productosFiltrados}
+                                    searchTerm={searchTerm}
+                                    setSearchTerm={setSearchTerm}
+                                    filterCategory={filterCategory}
+                                    setFilterCategory={setFilterCategory}
+                                    setShowForm={setShowForm}
+                                    setEditingProduct={setEditingProduct}
+                                    registrarMovimiento={registrarMovimiento}
+                                    deleteProduct={deleteProduct}
+                                    formatDate={formatDate}
+                                    formatCurrency={formatCurrency}
+                                />
+                            )}
 
-                {currentView === 'inventario' && (
-                    <InventarioView
-                        productosFiltrados={productosFiltrados}
-                        searchTerm={searchTerm}
-                        setSearchTerm={setSearchTerm}
-                        filterCategory={filterCategory}
-                        setFilterCategory={setFilterCategory}
-                        setShowForm={setShowForm}
-                        setEditingProduct={setEditingProduct}
-                        registrarMovimiento={registrarMovimiento}
-                        deleteProduct={deleteProduct}
-                        formatDate={formatDate}
-                        formatCurrency={formatCurrency}
-                    />
-                )}
+                            {currentView === 'alertas' && (
+                                <AlertasView
+                                    productosConAlertas={productosConAlertas}
+                                    registrarMovimiento={registrarMovimiento}
+                                    formatDate={formatDate}
+                                />
+                            )}
 
-                {currentView === 'alertas' && (
-                    <AlertasView
-                        productosConAlertas={productosConAlertas}
-                        registrarMovimiento={registrarMovimiento}
-                        formatDate={formatDate}
-                    />
-                )}
+                            {currentView === 'movimientos' && (
+                                <MovimientosView
+                                    movimientos={movimientos}
+                                    formatCurrency={formatCurrency}
+                                />
+                            )}
 
-                {currentView === 'movimientos' && (
-                    <MovimientosView
-                        movimientos={movimientos}
-                        formatCurrency={formatCurrency}
-                    />
-                )}
+                            {currentView === 'reportes' && (
+                                <ReportesView
+                                    movimientos={movimientos}
+                                    estadisticas={estadisticas}
+                                    formatCurrency={formatCurrency}
+                                />
+                            )}
+                        </div>
+                    </main>
+            </div>
 
-                {currentView === 'reportes' && (
-                    <ReportesView
-                        movimientos={movimientos}
-                        estadisticas={estadisticas}
-                        formatCurrency={formatCurrency}
-                    />
-                )}
-            </main>
+            
 
             {/* Formulario Modal */}
             {showForm && (
@@ -348,20 +373,13 @@ function App() {
                     }}
                 />
             )}
-
-            {/* Footer */}
-            <footer className="bg-white border-t mt-12">
-                <div className="container mx-auto px-4 py-6 text-center text-gray-600 text-sm">
-                    © 2026 Tienda La Fortaleza - Sistema de Inventario
-                </div>
-            </footer>
         </div>
     );
 }
 
-// Renderizar la aplicación
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+export default App;
+
+
 
 
 /*const utils = {

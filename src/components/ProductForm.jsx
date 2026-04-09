@@ -85,8 +85,8 @@ export default function ProductForm({ product, onSave, onCancel }){
                                         type="number"
                                         required
                                         min="0"
-                                        value={formData.cantidad}
-                                        onChange={(e) => setFormData({...formData, cantidad: parseInt(e.target.value)})}
+                                        value={formData.cantidad || ''}
+                                        onChange={(e) => setFormData({...formData, cantidad: parseInt(e.target.value) || 0})}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                                     />
                                 </div>
