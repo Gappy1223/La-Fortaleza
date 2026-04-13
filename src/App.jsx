@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import ReactDOM from "react-dom/client";
 import { productService } from "./services/productService.js";
 import { movementService } from "./services/movementService.js";
+import { corteService } from "./services/corteService.js";
 import Icon from "./components/Icon.jsx";
 import ProductForm from "./components/ProductForm.jsx";
 import DashboardView from "./views/DashboardView.jsx";
@@ -9,6 +10,7 @@ import InventarioView from "./views/InventarioView.jsx";
 import AlertasView from "./views/AlertasView.jsx";
 import MovimientosView from "./views/MovimientosView.jsx";
 import ReportesView from "./views/ReportesView.jsx";
+import PuntoVentaView from "./views/PuntoVentaView.jsx";
 
 const formatCurrency = (amount) => {
     return new Intl.NumberFormat('es-MX', {
@@ -42,21 +44,21 @@ const getAlertLevel = (daysUntilExpiry) => {
     return 'OK';
 };
 
-const getAlertColor = (level) => {
+/*const getAlertColor = (level) => {
     switch(level) {
         case 'VENCIDO': return 'bg-gray-100 border-gray-400 text-gray-700';
         case 'CRITICO': return 'bg-red-100 border-red-500 text-red-700';
         case 'ATENCION': return 'bg-yellow-100 border-yellow-500 text-yellow-700';
         default: return 'bg-green-100 border-green-500 text-green-700';
     }
-};
+};*/
 
 // ============================================
 // COMPONENTE PRINCIPAL
 // ============================================
 function App() {
     // Estados
-    const [currentView, setCurrentView] = useState('dashboard');
+    const [currentView, setCurrentView] = useState('caja');
     const [productos, setProductos] = useState([]);
     const [movimientos, setMovimientos] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -65,6 +67,25 @@ function App() {
     const [editingProduct, setEditingProduct] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('TODOS');
+    const [cortesCaja, setCortesCaja] = useState([]);
+    const [isOnline, setIsOnline] = useState(navigator.onLine);
+    const [ventasPendientes, setVentasPendientes] = useState(()=> JSON.parse(localStorage.getItem('ventas_pendientes') || '[]'));
+
+    useEffect(()=>{
+        const handleOnline = ()=>{
+            setIsOnline(true);
+            sincronizarVentasPendientes();
+        };
+        const handleOffline = ()=> setIsOnline(false);
+        window,addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
+
+
 
     useEffect(() => {
         loadData();
@@ -75,6 +96,10 @@ function App() {
             setLoading(true);
             setError(null);
 
+            if(!navigator.onLine){
+                throw new Error("Sin conexión a internet");
+            }
+
             // Cargar productos
             const { data: productosData, error: productosError } = await productService.getAll();
             if (productosError) throw productosError;
@@ -82,11 +107,20 @@ function App() {
             const { data: movimientosData, error: movimientosError } = await movementService.getAll()
             if (movimientosError) throw movimientosError;
 
+            const cortesData = await corteService.obtenerHistorialCortes();
+            localStorage.setItem('cache_productos', JSON.stringify(productosData || []));
+
             setProductos(productosData || []);
             setMovimientos(movimientosData || []);
+            setCortesCaja(cortesData || []);
         } catch (err) {
-            console.error('Error cargando datos:', err);
-            setError('Error al cargar los datos. Por favor, verifica tu conexión a Supabase.');
+            console.warn('Modo offline: cargando datos desde cache', err);
+            const productosCache = JSON.parse(localStorage.getItem('cache_productos') || '[]');
+            if (productosCache.length > 0) {
+                setProductos(productosCache);
+            } else {
+                setError('No hay internet y no hay datos guardados previamente. Por favor, conecta a internet para cargar los datos por primera vez.');
+            }
         } finally {
             setLoading(false);
         }
@@ -136,36 +170,68 @@ function App() {
 
 
     const registrarMovimiento = async (tipo, producto, cantidad, notas = '') => {
+        const valorTotal = tipo === 'SALIDA'
+                    ? producto.precio_venta * cantidad
+                    : producto.precio_compra * cantidad;
+
+        const nuevaCantidad = tipo === 'ENTRADA'
+            ? producto.cantidad + cantidad
+            : producto.cantidad - cantidad;
+
+        // 1. ACTUALIZAR INTERFAZ INMEDIATAMENTE (Para que el cajero siga cobrando rápido)
+        setProductos(prev => prev.map(p => p.id === producto.id ? { ...p, cantidad: nuevaCantidad } : p));
+
+        const paqueteMovimiento = {
+            tipo,
+            producto_id: producto.id,
+            producto_nombre: producto.nombre,
+            cantidad,
+            fecha_hora: new Date().toISOString(),
+            usuario: 'Usuario',
+            notas: isOnline ? notas : `(OFFLINE) ${notas}`,
+            valor_total: valorTotal,
+            nueva_cantidad: nuevaCantidad
+        };
+
+        // 2. SI NO HAY INTERNET, GUARDAR EN LA COLA
+        if (!isOnline) {
+            const colaAct = [...ventasPendientes, paqueteMovimiento];
+            setVentasPendientes(colaAct);
+            localStorage.setItem('ventas_pendientes', JSON.stringify(colaAct));
+            return; // Terminamos aquí sin intentar usar Supabase
+        }
+
+        // 3. SI HAY INTERNET, GUARDAR DIRECTO EN SUPABASE
         try {
-            const valorTotal = tipo === 'SALIDA'
-                ? producto.precio_venta * cantidad
-                : producto.precio_compra * cantidad;
-
-            const { error: movError } = await movementService.create({
-                tipo,
-                producto_id: producto.id,
-                producto_nombre: producto.nombre,
-                cantidad,
-                fecha_hora: new Date().toISOString(),
-                usuario: 'Usuario',
-                notas,
-                valor_total: valorTotal
-            });
-            if (movError) throw movError;
-
-            const nuevaCantidad = tipo === 'ENTRADA'
-                ? producto.cantidad + cantidad
-                : producto.cantidad - cantidad;
-
-            const { error: updateError } = await productService.update(
-                producto.id, { cantidad: nuevaCantidad }
-            );
-            if (updateError) throw updateError;
-
+            await movementService.create(paqueteMovimiento);
+            await productService.update(producto.id, { cantidad: nuevaCantidad });
             await loadData();
         } catch (err) {
-            console.error('Error registrando movimiento:', err);
-            alert('Error al registrar el movimiento. Por favor, intenta de nuevo.');
+            console.error('Error registrando:', err);
+            alert('Error al sincronizar el movimiento con la nube.');
+        }
+    };
+
+
+    const sincronizarVentasPendientes = async () => {
+        const cola = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
+        if (cola.length === 0) return;
+
+        try {
+            for (const mov of cola) {
+                // Subir movimiento a Supabase
+                await movementService.create(mov);
+                // Actualizar inventario en Supabase
+                await productService.update(mov.producto_id, { cantidad: mov.nueva_cantidad });
+            }
+            
+            // Si todo salió bien, vaciamos la libreta
+            localStorage.setItem('ventas_pendientes', '[]');
+            setVentasPendientes([]);
+            await loadData(); // Recargamos para asegurar sincronía total
+            alert('¡Conexión recuperada! Todas las ventas offline han sido sincronizadas.');
+        } catch (error) {
+            console.error("Error sincronizando ventas atrasadas", error);
         }
     };
 
@@ -188,9 +254,9 @@ function App() {
     }, [productosConAlertas, searchTerm, filterCategory]);
 
     const estadisticas = useMemo(() => {
-        const criticos = productosConAlertas.filter(p => p.nivelAlerta === 'CRITICO').length;
-        const atencion = productosConAlertas.filter(p => p.nivelAlerta === 'ATENCION').length;
-        const vencidos = productosConAlertas.filter(p => p.nivelAlerta === 'VENCIDO').length;
+        const criticos = productosConAlertas.filter(p => p.nivelAlerta === 'CRITICO' && p.cantidad > 0).length;
+        const atencion = productosConAlertas.filter(p => p.nivelAlerta === 'ATENCION' && p.cantidad > 0).length;
+        const vencidos = productosConAlertas.filter(p => p.nivelAlerta === 'VENCIDO' && p.cantidad > 0).length;
         const valorTotal = productos.reduce((sum, p) => sum + (p.cantidad * p.precio_venta), 0);
         const totalProductos = productos.reduce((sum, p) => sum + p.cantidad, 0);
 
@@ -235,6 +301,7 @@ function App() {
     }
 
     const menuItems = [
+        { id: 'caja', label: 'Caja / POS', icon: 'ShoppingCart'},
         { id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard'},
         { id: 'inventario', label: 'Inventario', icon: 'Package'},
         { id: 'alertas', label: 'Alertas', icon: 'Bell'},
@@ -306,6 +373,17 @@ function App() {
                     {/* Contenido Principal */}
                     <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-8">
                         <div className="max-w-7xl mx-auto">
+                            
+                            {currentView === 'caja' && (
+                                <PuntoVentaView
+                                    productos={productos}
+                                    formatCurrency={formatCurrency}
+                                    registrarMovimiento={registrarMovimiento}
+                                    movimientos={movimientos}
+                                />
+                            )}
+                            
+                            
                             {currentView === 'dashboard' && (
                                 <DashboardView
                                     estadisticas={estadisticas}
@@ -320,17 +398,14 @@ function App() {
 
                             {currentView === 'inventario' && (
                                 <InventarioView
-                                    productosFiltrados={productosFiltrados}
-                                    searchTerm={searchTerm}
-                                    setSearchTerm={setSearchTerm}
-                                    filterCategory={filterCategory}
-                                    setFilterCategory={setFilterCategory}
-                                    setShowForm={setShowForm}
-                                    setEditingProduct={setEditingProduct}
-                                    registrarMovimiento={registrarMovimiento}
-                                    deleteProduct={deleteProduct}
-                                    formatDate={formatDate}
+                                    productos={productos}
                                     formatCurrency={formatCurrency}
+                                    setEditingProduct={setEditingProduct}
+                                    setShowForm={setShowForm}
+                                    deleteProduct={deleteProduct}
+                                    registrarMovimiento={registrarMovimiento}
+                                    formatDate={formatDate}
+
                                 />
                             )}
 
@@ -353,6 +428,7 @@ function App() {
                                 <ReportesView
                                     movimientos={movimientos}
                                     estadisticas={estadisticas}
+                                    cortesCaja={cortesCaja}
                                     formatCurrency={formatCurrency}
                                 />
                             )}
