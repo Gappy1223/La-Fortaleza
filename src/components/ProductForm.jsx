@@ -1,10 +1,10 @@
 import React, { useEffect } from "react";
-
+import Icon from "./Icon";
 const { useState } = React;
 
 export default function ProductForm({ product, onSave, onCancel }){
         const [formData, setFormData] = useState(product || {
-            id: `PROD-${Date.now()}`,
+            id: `PROD-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
             nombre: '',
             categoria: 'LACTEOS',
             cantidad: 0,
@@ -24,6 +24,9 @@ export default function ProductForm({ product, onSave, onCancel }){
             if (product){
                 setFormData({
                     ...product,
+                    proveedor: product.proveedor || '',
+                    codigo_barras: product.codigo_barras || '',
+                    ubicacion: product.ubicacion || '',
                     precio_compra: product.precio_compra || '',
                     precio_venta: product.precio_venta || '',
                     fecha_caducidad: product.fecha_caducidad ? product.fecha_caducidad.split('T')[0] : ''
@@ -51,6 +54,18 @@ export default function ProductForm({ product, onSave, onCancel }){
             }
 
             onSave(formData);
+
+        const dataSubmit = {
+                ...formData,
+                // Forzamos que si están vacíos se guarden como string vacío o null según prefieras
+                proveedor: formData.proveedor || '',
+                ubicacion: formData.ubicacion || '',
+                // Aseguramos conversión numérica para la DB
+                precio_compra: Number(formData.precio_compra),
+                precio_venta: Number(formData.precio_venta),
+                cantidad: Number(formData.cantidad)
+            };
+            onSave(dataSubmit);
         };
 
         const costoNumerico = Number(formData.precio_compra) || 0;
@@ -103,8 +118,9 @@ return (
                                     <option value="BEBIDAS">Bebidas</option>
                                     <option value="BOTANAS">Botanas y Dulces</option>
                                     <option value="LIMPIEZA">Limpieza del Hogar</option>
-                                    <option value="HIGIENE">Higiene Personal</option>
+                                    <option value="ASEO_PERSONAL">Higiene Personal</option>
                                     <option value="PANADERIA">Panadería</option>
+                                    <option value="CARNES_FRIAS">Carnes Frías</option>
                                     <option value="OTROS">Otros</option>
                                 </select>
                             </div>
@@ -118,6 +134,26 @@ return (
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                     value={formData.codigo_barras}
                                     onChange={e => setFormData({ ...formData, codigo_barras: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
+                                <input
+                                    type="text"
+                                    placeholder="Ej. Coca-Cola, Distribuidora local..."
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    value={formData.proveedor}
+                                    onChange={e => setFormData({ ...formData, proveedor: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Ubicación en Tienda</label>
+                                <input
+                                    type="text"
+                                    placeholder="Ej. Pasillo 2, Estante B"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    value={formData.ubicacion}
+                                    onChange={e => setFormData({ ...formData, ubicacion: e.target.value })}
                                 />
                             </div>
                             <div>

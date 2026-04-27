@@ -4,6 +4,7 @@ import { productService } from "./services/productService.js";
 import { movementService } from "./services/movementService.js";
 import { corteService } from "./services/corteService.js";
 import Icon from "./components/Icon.jsx";
+import StockInForm from "./components/StockInForm.jsx";
 import ProductForm from "./components/ProductForm.jsx";
 import DashboardView from "./views/DashboardView.jsx";
 import InventarioView from "./views/InventarioView.jsx";
@@ -70,6 +71,8 @@ function App() {
     const [cortesCaja, setCortesCaja] = useState([]);
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [ventasPendientes, setVentasPendientes] = useState(()=> JSON.parse(localStorage.getItem('ventas_pendientes') || '[]'));
+    const [showStockInModal, setShowStockInModal] = useState(false);
+    const [selectedProduct, setSelectedProduct] = useState(null);
 
     useEffect(()=>{
         const handleOnline = ()=>{
@@ -236,6 +239,7 @@ function App() {
     };
 
 
+
     const productosConAlertas = useMemo(() => {
         return productos.map(p => ({
             ...p,
@@ -263,7 +267,36 @@ function App() {
         return { criticos, atencion, vencidos, valorTotal, totalProductos };
     }, [productosConAlertas, productos]);
 
-
+    const handleConfirmStockIn = async (formData) => {
+        try{
+            const nuevoTotal = Number(selectedProduct.cantidad) + Number(formData.cantidadSuma);
+            const { error: prodError} = await productService.update(selectedProduct.id, {
+                ...selectedProduct,
+                cantidad: nuevoTotal,
+                precio_compra: Number(formData.nuevoCosto),
+                fecha_caducidad: formData.nuevaCaducidad,
+                updated_at: new Date().toISOString()
+            });
+            if (prodError) throw prodError;
+            const { error: movError } = await movementService.create({
+                tipo: 'ENTRADA',
+                producto_id: selectedProduct.id,
+                producto_nombre: selectedProduct.nombre,
+                cantidad: Number(formData.cantidadSuma),
+                usuario: 'Administrador',
+                notas: formData.notas || 'Reabastecimiento de inventario',
+                valor_total: Number(formData.nuevoCosto) + Number(formData.cantidadSuma)
+            });
+            if (movError) throw movError;
+            await loadData();
+            setShowStockInModal(false);
+            setSelectedProduct(null);
+            alert('Inventario actualizado correctamente');
+        } catch (error){
+            console.error('Error en reabastecimiento:', error);
+            alert("Error al actualizar el inventario:" + error.message);
+        }
+    };
 
 
     // ============================================
@@ -335,7 +368,9 @@ function App() {
                             }`}
                         >
                             <Icon name={nav.icon} size={20} className={currentView === nav.id ? 'text-emerald-400' : 'text-slate-400'} />
-
+                            <span className="text-sm">
+                                {nav.label}
+                            </span>
                         </button>
                     ))}
                 </nav>
@@ -403,6 +438,10 @@ function App() {
                                     setEditingProduct={setEditingProduct}
                                     setShowForm={setShowForm}
                                     deleteProduct={deleteProduct}
+                                    onStockIn={(producto)=>{
+                                        setSelectedProduct(producto);
+                                        setShowStockInModal(true)
+                                    }}
                                     registrarMovimiento={registrarMovimiento}
                                     formatDate={formatDate}
 
@@ -446,6 +485,17 @@ function App() {
                     onCancel={() => {
                         setShowForm(false);
                         setEditingProduct(null);
+                    }}
+                />
+            )}
+
+            {showStockInModal && (
+                <StockInForm
+                    product={selectedProduct}
+                    onSave={handleConfirmStockIn}
+                    onCancel={()=>{
+                        setShowStockInModal(false);
+                        setSelectedProduct(null);
                     }}
                 />
             )}
