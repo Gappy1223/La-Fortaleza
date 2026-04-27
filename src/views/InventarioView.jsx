@@ -1,11 +1,13 @@
 import { useState } from "react";
 import Icon from "../components/Icon";
+import StockInForm from "../components/StockInForm";
 export default function InventarioView({
     productos,
     formatCurrency,
     setEditingProduct, 
     setShowForm,
-    deleteProduct
+    deleteProduct,
+    onStockIn
 }) {
     const [busqueda, setBusqueda] = useState('');
     const productosFiltrados = productos.filter(p =>
@@ -110,6 +112,15 @@ return (
                                         {/* Botones de acción (visibles al hacer hover) */}
                                         <td className="px-6 py-4">
                                             <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                
+                                                <button
+                                                    onClick={() => onStockIn(producto)}
+                                                    className="p-2 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-all"
+                                                    title="Reabastecer stock"
+                                                >
+                                                    <Icon name="PlusCircle" size={16} />
+                                                </button>                                                
+
                                                 <button
                                                     onClick={() => {
                                                         setEditingProduct(producto);
@@ -131,6 +142,7 @@ return (
                                                 >
                                                     <Icon name="Trash2" size={16} />
                                                 </button>
+
                                             </div>
                                         </td>
                                     </tr>
