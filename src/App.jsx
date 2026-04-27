@@ -80,7 +80,7 @@ function App() {
             sincronizarVentasPendientes();
         };
         const handleOffline = ()=> setIsOnline(false);
-        window,addEventListener('online', handleOnline);
+        window.addEventListener('online', handleOnline);
         window.addEventListener('offline', handleOffline);
         return () => {
             window.removeEventListener('online', handleOnline);
@@ -192,8 +192,7 @@ function App() {
             fecha_hora: new Date().toISOString(),
             usuario: 'Usuario',
             notas: isOnline ? notas : `(OFFLINE) ${notas}`,
-            valor_total: valorTotal,
-            nueva_cantidad: nuevaCantidad
+            valor_total: valorTotal
         };
 
         // 2. SI NO HAY INTERNET, GUARDAR EN LA COLA
@@ -206,8 +205,10 @@ function App() {
 
         // 3. SI HAY INTERNET, GUARDAR DIRECTO EN SUPABASE
         try {
-            await movementService.create(paqueteMovimiento);
-            await productService.update(producto.id, { cantidad: nuevaCantidad });
+            const { error: movError } = await movementService.create(paqueteMovimiento);
+            if (movError) throw movError;
+            const { error: prodError } = await productService.update(producto.id, { cantidad: nuevaCantidad });
+            if (prodError) throw prodError;
             await loadData();
         } catch (err) {
             console.error('Error registrando:', err);
@@ -285,7 +286,7 @@ function App() {
                 cantidad: Number(formData.cantidadSuma),
                 usuario: 'Administrador',
                 notas: formData.notas || 'Reabastecimiento de inventario',
-                valor_total: Number(formData.nuevoCosto) + Number(formData.cantidadSuma)
+                valor_total: Number(formData.nuevoCosto) * Number(formData.cantidadSuma)
             });
             if (movError) throw movError;
             await loadData();
@@ -466,6 +467,7 @@ function App() {
                             {currentView === 'reportes' && (
                                 <ReportesView
                                     movimientos={movimientos}
+                                    productos={productos}
                                     estadisticas={estadisticas}
                                     cortesCaja={cortesCaja}
                                     formatCurrency={formatCurrency}

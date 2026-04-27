@@ -76,13 +76,15 @@ export default function PuntoVentaView({
     const cambio = Number(pagoCliente) > 0 ? Number(pagoCliente) - totalVenta : 0;
     const pagoSuficiente = Number(pagoCliente) >= totalVenta;
 
-    const procesarVenta = () => {
+    const procesarVenta = async () => {
         if (carrito.length === 0) return;
         if (!window.confirm(`¿Confirmar venta por ${formatCurrency(totalVenta)}?`)) return;
 
-        carrito.forEach(item => {
-            registrarMovimiento('SALIDA', item.producto, item.cantidad, 'Venta en mostrador (Caja)');
-        });
+        await Promise.all(
+            carrito.map(item =>
+                registrarMovimiento('SALIDA', item.producto, item.cantidad, 'Venta en mostrador (Caja)')
+            )
+        );
 
         setCarrito([]);
         setPagoCliente('');
@@ -126,7 +128,7 @@ export default function PuntoVentaView({
             setEfectivoContado('');
             setNotasCorte('');
         } catch (error) {
-            alert("Hubo un error al guardar el corte. Revisa tu conexión.");
+            alert("Hubo un error al guardar el corte. Revisa tu conexión." + error.message);
         } finally {
             setProcesandoCorte(false);
         }
