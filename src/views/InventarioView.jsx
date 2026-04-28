@@ -10,6 +10,7 @@ export default function InventarioView({
     onStockIn
 }) {
     const [busqueda, setBusqueda] = useState('');
+    const [pendingDeleteId, setPendingDeleteId] = useState(null);
     const productosFiltrados = productos.filter(p =>
         p.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
         p.categoria.toLowerCase().includes(busqueda.toLowerCase())
@@ -111,39 +112,47 @@ return (
                                         
                                         {/* Botones de acción (visibles al hacer hover) */}
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                
-                                                <button
-                                                    onClick={() => onStockIn(producto)}
-                                                    className="p-2 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-all"
-                                                    title="Reabastecer stock"
-                                                >
-                                                    <Icon name="PlusCircle" size={16} />
-                                                </button>                                                
-
-                                                <button
-                                                    onClick={() => {
-                                                        setEditingProduct(producto);
-                                                        setShowForm(true);
-                                                    }}
-                                                    className="p-2 text-blue-600 hover:bg-blue-100 hover:shadow-sm rounded-lg transition-all"
-                                                    title="Editar producto"
-                                                >
-                                                    <Icon name="Edit2" size={16} />
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        if(window.confirm(`¿Seguro que deseas eliminar ${producto.nombre}?`)) {
-                                                            deleteProduct && deleteProduct(producto.id);
-                                                        }
-                                                    }}
-                                                    className="p-2 text-red-600 hover:bg-red-100 hover:shadow-sm rounded-lg transition-all"
-                                                    title="Eliminar producto"
-                                                >
-                                                    <Icon name="Trash2" size={16} />
-                                                </button>
-
-                                            </div>
+                                            {pendingDeleteId === producto.id ? (
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <span className="text-xs text-red-600 font-medium whitespace-nowrap">¿Eliminar?</span>
+                                                    <button
+                                                        onClick={() => { deleteProduct(producto.id); setPendingDeleteId(null); }}
+                                                        className="px-2.5 py-1 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition-colors"
+                                                    >
+                                                        Sí
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setPendingDeleteId(null)}
+                                                        className="px-2.5 py-1 bg-gray-200 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-300 transition-colors"
+                                                    >
+                                                        No
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button
+                                                        onClick={() => onStockIn(producto)}
+                                                        className="p-2 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-all"
+                                                        title="Reabastecer stock"
+                                                    >
+                                                        <Icon name="PlusCircle" size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { setEditingProduct(producto); setShowForm(true); }}
+                                                        className="p-2 text-blue-600 hover:bg-blue-100 hover:shadow-sm rounded-lg transition-all"
+                                                        title="Editar producto"
+                                                    >
+                                                        <Icon name="Edit2" size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setPendingDeleteId(producto.id)}
+                                                        className="p-2 text-red-600 hover:bg-red-100 hover:shadow-sm rounded-lg transition-all"
+                                                        title="Eliminar producto"
+                                                    >
+                                                        <Icon name="Trash2" size={16} />
+                                                    </button>
+                                                </div>
+                                            )}
                                         </td>
                                     </tr>
                                 );
