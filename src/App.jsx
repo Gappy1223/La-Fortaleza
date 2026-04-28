@@ -3,9 +3,14 @@ import ReactDOM from "react-dom/client";
 import { productService } from "./services/productService.js";
 import { movementService } from "./services/movementService.js";
 import { corteService } from "./services/corteService.js";
+import { gastoService } from "./services/gastoService.js";
+import { authService } from "./services/authService.js";
+import { toast } from "./utils/toast.js";
 import Icon from "./components/Icon.jsx";
+import ToastContainer from "./components/ToastContainer.jsx";
 import StockInForm from "./components/StockInForm.jsx";
 import ProductForm from "./components/ProductForm.jsx";
+import LoginView from "./views/LoginView.jsx";
 import DashboardView from "./views/DashboardView.jsx";
 import InventarioView from "./views/InventarioView.jsx";
 import AlertasView from "./views/AlertasView.jsx";
@@ -59,6 +64,8 @@ const getAlertLevel = (daysUntilExpiry) => {
 // ============================================
 function App() {
     // Estados
+    const [session, setSession] = useState(null);
+    const [authLoading, setAuthLoading] = useState(true);
     const [currentView, setCurrentView] = useState('caja');
     const [productos, setProductos] = useState([]);
     const [movimientos, setMovimientos] = useState([]);
@@ -73,6 +80,18 @@ function App() {
     const [ventasPendientes, setVentasPendientes] = useState(()=> JSON.parse(localStorage.getItem('ventas_pendientes') || '[]'));
     const [showStockInModal, setShowStockInModal] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState(null);
+    const [gastosHoy, setGastosHoy] = useState([]);
+
+    useEffect(() => {
+        authService.getSession().then(({ data: { session } }) => {
+            setSession(session);
+            setAuthLoading(false);
+        });
+        const { data: { subscription } } = authService.onAuthStateChange((_event, session) => {
+            setSession(session);
+        });
+        return () => subscription.unsubscribe();
+    }, []);
 
     useEffect(()=>{
         const handleOnline = ()=>{
@@ -88,11 +107,9 @@ function App() {
         };
     }, []);
 
-
-
     useEffect(() => {
-        loadData();
-    }, []);
+        if (session) loadData();
+    }, [session]);
 
     const loadData = async () => {
         try {
@@ -111,11 +128,13 @@ function App() {
             if (movimientosError) throw movimientosError;
 
             const cortesData = await corteService.obtenerHistorialCortes();
+            const { data: gastosData } = await gastoService.getHoy();
             localStorage.setItem('cache_productos', JSON.stringify(productosData || []));
 
             setProductos(productosData || []);
             setMovimientos(movimientosData || []);
             setCortesCaja(cortesData || []);
+            setGastosHoy(gastosData || []);
         } catch (err) {
             console.warn('Modo offline: cargando datos desde cache', err);
             const productosCache = JSON.parse(localStorage.getItem('cache_productos') || '[]');
@@ -144,7 +163,7 @@ function App() {
                     producto_nombre: productData.nombre,
                     cantidad: productData.cantidad,
                     fecha_hora: new Date().toISOString(),
-                    usuario: 'Sistema',
+                    usuario: session.user.email,
                     notas: 'Ingreso inicial al crear producto',
                     valor_total: productData.precio_compra * productData.cantidad
                 });
@@ -154,25 +173,29 @@ function App() {
             setEditingProduct(null);
         } catch (err) {
             console.error('Error guardando producto:', err);
-            alert('Error al guardar el producto. Por favor, intenta de nuevo.');
+            toast.error('Error al guardar el producto. Por favor, intenta de nuevo.');
         }
     };
 
     const deleteProduct = async (productId) => {
-        if (!confirm('¿Estás seguro de eliminar este producto?')) return;
-
         try {
            const { error } = await productService.delete(productId);
            if (error) throw error;
            await loadData();
+           toast.success('Producto eliminado.');
         } catch (err) {
             console.error('Error eliminando producto:', err);
-            alert('Error al eliminar el producto.');
+            toast.error('Error al eliminar el producto.');
         }
     };
 
 
     const registrarMovimiento = async (tipo, producto, cantidad, notas = '') => {
+        if ((tipo === 'SALIDA' || tipo === 'MERMA') && producto.cantidad < cantidad) {
+            toast.error(`Stock insuficiente para "${producto.nombre}". Disponible: ${producto.cantidad}`);
+            return;
+        }
+
         const valorTotal = tipo === 'SALIDA'
                     ? producto.precio_venta * cantidad
                     : producto.precio_compra * cantidad;
@@ -190,14 +213,14 @@ function App() {
             producto_nombre: producto.nombre,
             cantidad,
             fecha_hora: new Date().toISOString(),
-            usuario: 'Usuario',
+            usuario: session.user.email,
             notas: isOnline ? notas : `(OFFLINE) ${notas}`,
             valor_total: valorTotal
         };
 
         // 2. SI NO HAY INTERNET, GUARDAR EN LA COLA
         if (!isOnline) {
-            const colaAct = [...ventasPendientes, paqueteMovimiento];
+            const colaAct = [...ventasPendientes, { ...paqueteMovimiento, _nuevaCantidad: nuevaCantidad }];
             setVentasPendientes(colaAct);
             localStorage.setItem('ventas_pendientes', JSON.stringify(colaAct));
             return; // Terminamos aquí sin intentar usar Supabase
@@ -212,7 +235,7 @@ function App() {
             await loadData();
         } catch (err) {
             console.error('Error registrando:', err);
-            alert('Error al sincronizar el movimiento con la nube.');
+            toast.error('Error al sincronizar el movimiento con la nube.');
         }
     };
 
@@ -223,19 +246,41 @@ function App() {
 
         try {
             for (const mov of cola) {
-                // Subir movimiento a Supabase
-                await movementService.create(mov);
-                // Actualizar inventario en Supabase
-                await productService.update(mov.producto_id, { cantidad: mov.nueva_cantidad });
+                const { _nuevaCantidad, ...movData } = mov;
+                await movementService.create(movData);
+                await productService.update(mov.producto_id, { cantidad: _nuevaCantidad });
             }
             
             // Si todo salió bien, vaciamos la libreta
             localStorage.setItem('ventas_pendientes', '[]');
             setVentasPendientes([]);
-            await loadData(); // Recargamos para asegurar sincronía total
-            alert('¡Conexión recuperada! Todas las ventas offline han sido sincronizadas.');
+            await loadData();
+            toast.success('¡Conexión recuperada! Ventas offline sincronizadas.');
         } catch (error) {
             console.error("Error sincronizando ventas atrasadas", error);
+            toast.error('Error al sincronizar las ventas pendientes.');
+        }
+    };
+
+    const registrarGasto = async (concepto, monto, notas = '') => {
+        if (!isOnline) {
+            toast.info('Sin conexión. El gasto no se pudo registrar.');
+            return;
+        }
+        try {
+            const { error } = await gastoService.create({
+                concepto,
+                monto,
+                notas,
+                usuario: session.user.email,
+                fecha_hora: new Date().toISOString(),
+            });
+            if (error) throw error;
+            await loadData();
+            toast.success(`Gasto registrado: ${concepto} — ${formatCurrency(monto)}`);
+        } catch (err) {
+            console.error('Error registrando gasto:', err);
+            toast.error('Error al registrar el gasto.');
         }
     };
 
@@ -284,7 +329,7 @@ function App() {
                 producto_id: selectedProduct.id,
                 producto_nombre: selectedProduct.nombre,
                 cantidad: Number(formData.cantidadSuma),
-                usuario: 'Administrador',
+                usuario: session.user.email,
                 notas: formData.notas || 'Reabastecimiento de inventario',
                 valor_total: Number(formData.nuevoCosto) * Number(formData.cantidadSuma)
             });
@@ -292,10 +337,10 @@ function App() {
             await loadData();
             setShowStockInModal(false);
             setSelectedProduct(null);
-            alert('Inventario actualizado correctamente');
+            toast.success('Inventario actualizado correctamente.');
         } catch (error){
             console.error('Error en reabastecimiento:', error);
-            alert("Error al actualizar el inventario:" + error.message);
+            toast.error('Error al actualizar el inventario: ' + error.message);
         }
     };
 
@@ -303,6 +348,23 @@ function App() {
     // ============================================
     // RENDERIZADO PRINCIPAL
     // ============================================
+    if (authLoading) {
+        return (
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+            </div>
+        );
+    }
+
+    if (!session) {
+        return (
+            <>
+                <LoginView />
+                <ToastContainer />
+            </>
+        );
+    }
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -379,13 +441,19 @@ function App() {
                 {/* Bottom User Area */}
                 <div className="p-4 border-t border-slate-800">
                     <div className="flex items-center gap-3 px-2">
-                        <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold">
-                            A
+                        <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                            {session.user.email?.[0]?.toUpperCase() || 'A'}
                         </div>
-                        <div className="flex-1 text-sm text-left">
-                            <p className="text-white font-medium">Administrador</p>
-                            <p className="text-slate-500 text-xs">correo</p>
+                        <div className="flex-1 text-sm text-left min-w-0">
+                            <p className="text-white font-medium truncate">{session.user.email}</p>
                         </div>
+                        <button
+                            onClick={() => authService.signOut()}
+                            title="Cerrar sesión"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-400/10 transition-colors shrink-0"
+                        >
+                            <Icon name="LogOut" size={16} />
+                        </button>
                     </div>
                 </div>
             </aside>
@@ -415,7 +483,9 @@ function App() {
                                     productos={productos}
                                     formatCurrency={formatCurrency}
                                     registrarMovimiento={registrarMovimiento}
+                                    registrarGasto={registrarGasto}
                                     movimientos={movimientos}
+                                    gastosHoy={gastosHoy}
                                 />
                             )}
                             
@@ -501,6 +571,8 @@ function App() {
                     }}
                 />
             )}
+
+            <ToastContainer />
         </div>
     );
 }

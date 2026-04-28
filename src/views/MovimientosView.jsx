@@ -56,6 +56,7 @@ export default function MovimientosView({ movimientos, formatCurrency }) {
             case 'ENTRADA': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
             case 'SALIDA':  return 'bg-blue-100 text-blue-700 border-blue-200';
             case 'MERMA':   return 'bg-red-100 text-red-700 border-red-200';
+            case 'GASTO':   return 'bg-amber-100 text-amber-700 border-amber-200';
             default:        return 'bg-gray-100 text-gray-700 border-gray-200';
         }
     };
@@ -65,6 +66,7 @@ export default function MovimientosView({ movimientos, formatCurrency }) {
             case 'ENTRADA': return 'ArrowDownToLine';
             case 'SALIDA':  return 'ArrowUpFromLine';
             case 'MERMA':   return 'Trash2';
+            case 'GASTO':   return 'Banknote';
             default:        return 'Activity';
         }
     };
@@ -191,7 +193,7 @@ export default function MovimientosView({ movimientos, formatCurrency }) {
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="font-semibold text-gray-800">
-                                            {m.tipo === 'SALIDA' || m.tipo === 'MERMA' ? '-' : '+'}{m.cantidad}
+                                            {m.tipo === 'SALIDA' || m.tipo === 'MERMA' || m.tipo === 'GASTO' ? '-' : '+'}{m.cantidad}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-right font-medium text-gray-700">
