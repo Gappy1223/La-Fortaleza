@@ -77,6 +77,7 @@ function App() {
     const [filterCategory, setFilterCategory] = useState('TODOS');
     const [cortesCaja, setCortesCaja] = useState([]);
     const [isOnline, setIsOnline] = useState(navigator.onLine);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
     const [ventasPendientes, setVentasPendientes] = useState(()=> JSON.parse(localStorage.getItem('ventas_pendientes') || '[]'));
     const [showStockInModal, setShowStockInModal] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState(null);
@@ -409,8 +410,15 @@ function App() {
 
     return (
         <div className="flex h-screen bg-gray-50 font-sans overflow-hidden">
+            {/* Mobile backdrop */}
+            {sidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-40 md:hidden"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
             {/* Barra lateral */}
-            <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl z-20">
+            <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 md:z-20`}>
                 {/* Logo y título */}
                 <div className="h-16 flex items-center px-6 bg-slate-950 border-b border-slate-800">
                     <Icon name="Shield" size={24} className="text-emerald-500 mr-3" />
@@ -423,7 +431,7 @@ function App() {
                     {menuItems.map(nav=>(
                         <button
                             key={nav.id}
-                            onClick={()=>setCurrentView(nav.id)}
+                            onClick={()=>{ setCurrentView(nav.id); setSidebarOpen(false); }}
                             className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 ${
                                 currentView == nav.id
                                     ? 'bg-emerald-600/10 text-emerald-400 font-medium'
@@ -461,21 +469,29 @@ function App() {
             {/* Area Principal */}
             <div className="flex-1 flex flex-col h-screen overflow-hidden">
                 {/* Header */}
-                <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 z-10 shadow-sm">
-                    <h2 className="text-2xl font-semibold text-gray-800">
-                        {currentMenuLabel}
-                    </h2>
+                <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-8 z-10 shadow-sm shrink-0">
+                    <div className="flex items-center gap-3">
+                        <button
+                            className="md:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+                            onClick={() => setSidebarOpen(true)}
+                        >
+                            <Icon name="Menu" size={22} />
+                        </button>
+                        <h2 className="text-xl md:text-2xl font-semibold text-gray-800">
+                            {currentMenuLabel}
+                        </h2>
+                    </div>
                     <button
                         onClick={loadData}
-                        className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 hover:bg-emerald-50 hover:text-emerald-600 rounded-md transition-colors text-sm font-medium"
-                        >
-                            <Icon name="RefreshCw" size={16} />
-                            Actualizar Datos
-                        </button>
+                        className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-600 hover:bg-emerald-50 hover:text-emerald-600 rounded-md transition-colors text-sm font-medium"
+                    >
+                        <Icon name="RefreshCw" size={16} />
+                        <span className="hidden sm:inline">Actualizar Datos</span>
+                    </button>
                 </header>
 
                     {/* Contenido Principal */}
-                    <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-8">
+                    <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4 md:p-8">
                         <div className="max-w-7xl mx-auto">
                             
                             {currentView === 'caja' && (

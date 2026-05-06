@@ -82,7 +82,7 @@ return (
             <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
                 
                 {/* Header */}
-                <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 shrink-0">
+                <div className="px-4 py-3 md:px-6 md:py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 shrink-0">
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                         <Icon name="PackagePlus" size={24} className="text-emerald-600" />
                         {product ? 'Editar Producto' : 'Nuevo Producto'}
@@ -93,7 +93,7 @@ return (
                 </div>
 
                 {/* Contenido Formulario */}
-                <div className="p-6 overflow-y-auto flex-1">
+                <div className="p-4 md:p-6 overflow-y-auto flex-1">
                     <form id="productForm" onSubmit={handleSubmit} className="space-y-6">
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -101,7 +101,7 @@ return (
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
                                 <input
                                     type="text" required
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                     value={formData.nombre}
                                     onChange={e => setFormData({ ...formData, nombre: e.target.value })}
                                 />
@@ -109,7 +109,7 @@ return (
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
                                 <select
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                     value={formData.categoria}
                                     onChange={e => setFormData({ ...formData, categoria: e.target.value })}
                                 >
@@ -131,7 +131,7 @@ return (
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Código de Barras</label>
                                 <input
                                     type="text"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                     value={formData.codigo_barras}
                                     onChange={e => setFormData({ ...formData, codigo_barras: e.target.value })}
                                 />
@@ -141,7 +141,7 @@ return (
                                 <input
                                     type="text"
                                     placeholder="Ej. Coca-Cola, Distribuidora local..."
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                     value={formData.proveedor}
                                     onChange={e => setFormData({ ...formData, proveedor: e.target.value })}
                                 />
@@ -151,7 +151,7 @@ return (
                                 <input
                                     type="text"
                                     placeholder="Ej. Pasillo 2, Estante B"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                     value={formData.ubicacion}
                                     onChange={e => setFormData({ ...formData, ubicacion: e.target.value })}
                                 />
@@ -160,7 +160,7 @@ return (
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Caducidad</label>
                                 <input
                                     type="date"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                     value={formData.fecha_caducidad}
                                     onChange={e => setFormData({ ...formData, fecha_caducidad: e.target.value })}
                                 />
@@ -180,7 +180,7 @@ return (
                                         <span className="absolute left-3 top-2 text-gray-500">$</span>
                                         <input
                                             type="number" step="0.01" required
-                                            className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                            className="w-full pl-8 pr-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                             value={formData.precio_compra}
                                             onChange={e => setFormData({ ...formData, precio_compra: e.target.value })}
                                         />
@@ -191,7 +191,7 @@ return (
                                     <div className="relative">
                                         <input
                                             type="number"
-                                            className="w-full pl-3 pr-8 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                            className="w-full pl-3 pr-8 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                             value={margenGanancia}
                                             onChange={e => setMargenGanancia(Number(e.target.value))}
                                         />
@@ -204,7 +204,7 @@ return (
                                         <span className="absolute left-3 top-2 text-gray-500">$</span>
                                         <input
                                             type="number" step="0.01" required
-                                            className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
+                                            className="w-full pl-8 pr-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
                                             value={formData.precio_venta}
                                             onChange={e => setFormData({ ...formData, precio_venta: e.target.value })}
                                         />
@@ -235,7 +235,7 @@ return (
                                 <input
                                     type="number" required
                                     disabled={!!product} 
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-gray-100"
+                                    className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-gray-100"
                                     value={formData.cantidad}
                                     onChange={e => setFormData({ ...formData, cantidad: e.target.value })}
                                 />
@@ -245,7 +245,7 @@ return (
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Alerta Stock Mínimo *</label>
                                 <input
                                     type="number" required
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                     value={formData.nivel_minimo}
                                     onChange={e => setFormData({ ...formData, nivel_minimo: e.target.value })}
                                 />
@@ -256,7 +256,7 @@ return (
                 </div>
 
                 {/* Footer */}
-                <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3 shrink-0">
+                <div className="px-4 py-3 md:px-6 md:py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3 shrink-0">
                     <button
                         type="button"
                         onClick={onCancel}

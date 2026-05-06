@@ -29,6 +29,7 @@ export default function PuntoVentaView({
     const [gastoMonto, setGastoMonto]               = useState('');
     const [gastoNotas, setGastoNotas]               = useState('');
     const [procesandoGasto, setProcesandoGasto]     = useState(false);
+    const [activeTab, setActiveTab]                 = useState('catalogo');
 
     // ── CATÁLOGO ────────────────────────────────────────────────────────────
     const productosDisponibles = productos.filter(p => p.cantidad > 0);
@@ -61,6 +62,7 @@ export default function PuntoVentaView({
             }
             return [...prev, { producto, cantidad: 1, subtotal: Number(producto.precio_venta) || 0 }];
         });
+        if (window.innerWidth < 1024) setActiveTab('ticket');
     };
 
     const modificarCantidad = (productoId, delta) => {
@@ -153,18 +155,41 @@ export default function PuntoVentaView({
 
     // ── RENDER ───────────────────────────────────────────────────────────────
     return (
-        <div className="flex flex-col lg:flex-row gap-6 h-full relative">
+        <div className="flex flex-col h-full relative">
+
+            {/* Mobile tab bar */}
+            <div className="flex lg:hidden bg-white border border-gray-200 rounded-xl mb-4 overflow-hidden shrink-0">
+                <button
+                    onClick={() => setActiveTab('catalogo')}
+                    className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'catalogo' ? 'bg-emerald-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                >
+                    <Icon name="Package" size={16} /> Catálogo
+                </button>
+                <button
+                    onClick={() => setActiveTab('ticket')}
+                    className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'ticket' ? 'bg-emerald-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                >
+                    <Icon name="Receipt" size={16} /> Carrito
+                    {carrito.length > 0 && (
+                        <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-5 text-center leading-tight">
+                            {carrito.length}
+                        </span>
+                    )}
+                </button>
+            </div>
+
+            <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
 
             {/* ── CATÁLOGO ─────────────────────────────────────────────── */}
-            <div className="flex-1 flex flex-col h-full bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                <div className="p-4 border-b border-gray-200 bg-gray-50 flex gap-3 items-center">
+            <div className={`flex-1 flex-col bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden ${activeTab === 'ticket' ? 'hidden lg:flex' : 'flex'}`}>
+                <div className="p-4 border-b border-gray-200 bg-gray-50 flex gap-2 items-center">
                     <div className="relative flex-1">
                         <Icon name="Search" size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                         <input
                             type="text"
                             autoFocus
-                            placeholder="Buscar producto (Enter para agregar)..."
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-lg"
+                            placeholder="Buscar producto..."
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-base"
                             value={busqueda}
                             onChange={e => setBusqueda(e.target.value)}
                             onKeyDown={handleKeyDown}
@@ -173,36 +198,38 @@ export default function PuntoVentaView({
 
                     <button
                         onClick={() => setShowModalGasto(true)}
-                        className="flex items-center gap-2 px-4 py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors font-medium whitespace-nowrap shadow-sm"
+                        className="flex items-center gap-2 px-3 py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors font-medium shadow-sm shrink-0"
+                        title="Registrar gasto"
                     >
                         <Icon name="Receipt" size={18} />
-                        Gasto
+                        <span className="hidden sm:inline whitespace-nowrap">Gasto</span>
                     </button>
 
                     <button
                         onClick={() => setShowModalCorte(true)}
-                        className="flex items-center gap-2 px-4 py-3 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors font-medium whitespace-nowrap shadow-sm"
+                        className="flex items-center gap-2 px-3 py-3 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors font-medium shadow-sm shrink-0"
+                        title="Cerrar turno"
                     >
                         <Icon name="Lock" size={18} />
-                        Cerrar Turno
+                        <span className="hidden sm:inline whitespace-nowrap">Cerrar Turno</span>
                     </button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 bg-gray-50/50">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                         {productosFiltrados.map(producto => (
                             <button
                                 key={producto.id}
                                 onClick={() => agregarAlCarrito(producto)}
-                                className="flex flex-col p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-emerald-500 hover:shadow-md transition-all text-left active:scale-95"
+                                className="flex flex-col p-3 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-emerald-500 hover:shadow-md transition-all text-left active:scale-95"
                             >
-                                <div className="text-sm text-gray-500 font-medium mb-1">{producto.categoria}</div>
-                                <div className="font-bold text-gray-800 leading-tight mb-2 flex-1">{producto.nombre}</div>
+                                <div className="text-xs text-gray-500 font-medium mb-1">{producto.categoria}</div>
+                                <div className="font-bold text-gray-800 leading-tight mb-2 flex-1 text-sm">{producto.nombre}</div>
                                 <div className="flex justify-between items-end w-full mt-2">
-                                    <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">
-                                        Stock: {producto.cantidad}
+                                    <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                        {producto.cantidad}
                                     </span>
-                                    <span className="text-lg font-bold text-gray-900">
+                                    <span className="text-base font-bold text-gray-900">
                                         {formatCurrency(producto.precio_venta || 0)}
                                     </span>
                                 </div>
@@ -213,15 +240,15 @@ export default function PuntoVentaView({
             </div>
 
             {/* ── TICKET ───────────────────────────────────────────────── */}
-            <div className="w-full lg:w-[400px] flex flex-col bg-white border border-gray-200 rounded-xl shadow-sm h-[600px] lg:h-auto">
-                <div className="p-4 border-b border-gray-200 bg-slate-900 text-white rounded-t-xl flex justify-between items-center">
+            <div className={`w-full lg:w-100 flex-col bg-white border border-gray-200 rounded-xl shadow-sm flex-1 lg:flex-none min-h-0 ${activeTab === 'catalogo' ? 'hidden lg:flex' : 'flex'}`}>
+                <div className="p-4 border-b border-gray-200 bg-slate-900 text-white rounded-t-xl flex justify-between items-center shrink-0">
                     <h3 className="text-lg font-bold flex items-center gap-2">
                         <Icon name="Receipt" size={20} />Ticket
                     </h3>
                     <span className="bg-slate-700 px-2 py-1 rounded text-sm">{carrito.length} items</span>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-2 bg-gray-50">
+                <div className="flex-1 overflow-y-auto p-2 bg-gray-50 min-h-0">
                     {carrito.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-gray-400 gap-3">
                             <Icon name="ShoppingCart" size={48} className="opacity-20" />
@@ -231,27 +258,27 @@ export default function PuntoVentaView({
                         <div className="space-y-2">
                             {carrito.map(item => (
                                 <div key={item.producto.id} className="bg-white p-3 rounded-lg border border-gray-100 shadow-sm flex items-center justify-between gap-2">
-                                    <div className="flex-1">
-                                        <p className="font-bold text-gray-800 text-sm">{item.producto.nombre}</p>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-bold text-gray-800 text-sm truncate">{item.producto.nombre}</p>
                                         <p className="text-xs text-gray-500">{formatCurrency(item.producto.precio_venta || 0)} c/u</p>
                                     </div>
-                                    <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
-                                        <button onClick={() => modificarCantidad(item.producto.id, -1)} className="w-7 h-7 flex items-center justify-center bg-white rounded text-gray-600 hover:text-red-600">
+                                    <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 shrink-0">
+                                        <button onClick={() => modificarCantidad(item.producto.id, -1)} className="w-9 h-9 flex items-center justify-center bg-white rounded text-gray-600 hover:text-red-600 active:scale-95">
                                             <Icon name="Minus" size={14} />
                                         </button>
-                                        <span className="w-6 text-center font-bold text-sm">{item.cantidad}</span>
-                                        <button onClick={() => modificarCantidad(item.producto.id, 1)} className="w-7 h-7 flex items-center justify-center bg-white rounded text-gray-600 hover:text-emerald-600">
+                                        <span className="w-7 text-center font-bold text-sm">{item.cantidad}</span>
+                                        <button onClick={() => modificarCantidad(item.producto.id, 1)} className="w-9 h-9 flex items-center justify-center bg-white rounded text-gray-600 hover:text-emerald-600 active:scale-95">
                                             <Icon name="Plus" size={14} />
                                         </button>
                                     </div>
-                                    <div className="text-right w-20 font-bold text-gray-800">{formatCurrency(item.subtotal)}</div>
+                                    <div className="text-right w-20 font-bold text-gray-800 shrink-0">{formatCurrency(item.subtotal)}</div>
                                 </div>
                             ))}
                         </div>
                     )}
                 </div>
 
-                <div className="p-4 border-t border-gray-200 bg-white rounded-b-xl space-y-4">
+                <div className="p-4 border-t border-gray-200 bg-white rounded-b-xl space-y-4 shrink-0">
                     <div className="flex justify-between items-center text-2xl">
                         <span className="text-gray-500 font-medium">Total:</span>
                         <span className="font-bold text-emerald-600">{formatCurrency(totalVenta)}</span>
@@ -291,6 +318,8 @@ export default function PuntoVentaView({
                         {(pagoCliente && !pagoSuficiente) ? 'Pago Insuficiente' : 'COBRAR TICKET'}
                     </button>
                 </div>
+            </div>
+
             </div>
 
             {/* ── MODAL GASTO ───────────────────────────────────────────── */}
