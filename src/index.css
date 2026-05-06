@@ -5,3 +5,9 @@
     to   { transform: translateX(0);                 opacity: 1; }
 }
 
+@keyframes scanLine {
+    0%   { top: 10%; }
+    50%  { top: 85%; }
+    100% { top: 10%; }
+}
+

@@ -574,6 +574,7 @@ function App() {
                         setShowForm(false);
                         setEditingProduct(null);
                     }}
+                    existingProducts={productos}
                 />
             )}
 

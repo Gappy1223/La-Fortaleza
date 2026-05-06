@@ -1,9 +1,11 @@
 import React, { useEffect } from "react";
 import Icon from "./Icon";
+import BarcodeScanner from "./BarcodeScanner";
+import { toast } from "../utils/toast.js";
 const { useState } = React;
 
-export default function ProductForm({ product, onSave, onCancel }){
-        const [formData, setFormData] = useState(product || {
+export default function ProductForm({ product, onSave, onCancel, existingProducts = [] }){
+        const [formData, setFormData] = useState(() => product || {
             id: `PROD-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
             nombre: '',
             categoria: 'LACTEOS',
@@ -19,6 +21,7 @@ export default function ProductForm({ product, onSave, onCancel }){
         });
         
         const [margenGanancia, setMargenGanancia] = useState(15);
+        const [showScanner, setShowScanner] = useState(false);
         
         useEffect(() => {
             if (product){
@@ -73,11 +76,23 @@ export default function ProductForm({ product, onSave, onCancel }){
         const aplicarPrecioSugerido = () => {
         setFormData(prev => ({
             ...prev,
-            precio_venta: precioSugerido.toFixed(2) // Lo redondeamos a 2 decimales para dinero
+            precio_venta: precioSugerido.toFixed(2)
             }));
         };
 
+        const handleScan = (scannedCode) => {
+            setShowScanner(false);
+            const alreadyExists = existingProducts.some(
+                p => p.codigo_barras === scannedCode && p.id !== formData.id
+            );
+            if (alreadyExists) {
+                toast.info('Este producto ya está registrado con ese código de barras');
+            }
+            setFormData(prev => ({ ...prev, codigo_barras: scannedCode }));
+        };
+
 return (
+        <>
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
                 
@@ -129,12 +144,24 @@ return (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Código de Barras</label>
-                                <input
-                                    type="text"
-                                    className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                    value={formData.codigo_barras}
-                                    onChange={e => setFormData({ ...formData, codigo_barras: e.target.value })}
-                                />
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        className="flex-1 px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        value={formData.codigo_barras}
+                                        onChange={e => setFormData({ ...formData, codigo_barras: e.target.value })}
+                                        placeholder="Escribe o escanea..."
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowScanner(true)}
+                                        title="Escanear con cámara"
+                                        className="px-3 py-2.5 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors flex items-center gap-1.5 shrink-0"
+                                    >
+                                        <Icon name="Barcode" size={18} />
+                                        <span className="text-xs font-medium hidden sm:inline">Escanear</span>
+                                    </button>
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
@@ -275,5 +302,12 @@ return (
                 </div>
             </div>
         </div>
+        {showScanner && (
+            <BarcodeScanner
+                onScan={handleScan}
+                onClose={() => setShowScanner(false)}
+            />
+        )}
+        </>
     );
 }
